@@ -9,7 +9,7 @@ license:             AGPL-3
 license-file:        LICENSE
 author:              Uma Zalakain
 maintainer:          uma@gisa-elkartea.org
--- copyright:
+copyright:           Uma Zalakain
 category:            Language
 build-type:          Simple
 extra-source-files:  CHANGELOG.md
@@ -20,7 +20,8 @@ library
   -- other-modules:
   -- other-extensions:
   build-depends:       base >=4.11 && <4.12,
-                       hashmap >=1.3.3 && < 1.3.4
+                       hashmap,
+                       hashable
   hs-source-dirs:      src
   default-language:    Haskell2010
 
@@ -29,6 +30,7 @@ executable netsim
   -- other-modules:
   -- other-extensions:
   build-depends:       base >=4.11 && <4.12,
-                       hashmap >=1.3.3 && < 1.3.4
+                       hashmap,
+                       hashable
   hs-source-dirs:      src
   default-language:    Haskell2010

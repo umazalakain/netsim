@@ -27,10 +27,11 @@ library
 
 executable netsim
   main-is:             Main.hs
-  -- other-modules:
+  other-modules:       Language.Netsim
   -- other-extensions:
   build-depends:       base >=4.11 && <4.12,
                        hashmap,
-                       hashable
+                       hashable,
+                       optparse-applicative
   hs-source-dirs:      src
   default-language:    Haskell2010

@@ -122,11 +122,12 @@ dv d = M.filterWithKey (\d' _ -> d' /= d) . M.map fst
 -- | Generalise over functions that create distance vectors
 type GetDV = Source -> Destination -> State -> DV
 
--- | Without split-horizon
+-- | Create distance vectors without split-horizon
 woSH :: GetDV
 woSH s d = dv d . rtable s
 
--- | With split-horizon: omit destinations that have the recipient as gateway
+-- | Create distance vectors with split-horizon:
+-- | Omit routing entries that have the recipient of the ad as a gateway
 wSH :: GetDV
 wSH s d = dv d . M.filter ((/= d) . snd) . rtable s
 

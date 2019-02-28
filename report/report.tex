@@ -1,0 +1,112 @@
+\documentclass{scrartcl}
+
+% For mathematical symbols
+\usepackage{amsmath}
+
+% They are all over the place
+\usepackage{todonotes}
+
+% Appendices
+\usepackage[header,title,titletoc]{appendix}
+\renewcommand{\appendixname}{Appendix}
+
+% License
+\usepackage[
+    type={CC},
+    modifier={by-sa},
+    version={3.0},
+]{doclicense}
+
+% Sane datestamps
+\usepackage[yyyymmdd]{datetime}
+\renewcommand{\dateseparator}{--}
+
+% Haskell code highlighting
+\usepackage{minted}
+\newenvironment{code}{\VerbatimEnvironment\begin{minted}{haskell}}{\end{minted}}
+\setminted{fontsize=\footnotesize,baselinestretch=1}
+
+% Include images
+\usepackage{graphics}
+
+% Links and their colors
+\usepackage[
+  colorlinks=true,
+  linkcolor=darkgray,
+  citecolor=violet,
+  urlcolor=darkgray,
+  ]{hyperref}
+
+% Change the geometry of some of the pages 
+\usepackage{geometry}
+
+% Put some pages in landscape
+\usepackage{rotating}
+
+\begin{document}
+
+\title{Netsim}
+\subtitle{Simulating distance-vector routing with synchronised periodic exchances}
+\author{Uma Zalakain \\ \href{mailto:2423394z@student.gla.ac.uk}{2423394z@student.gla.ac.uk}}
+
+\maketitle
+\vfill
+\doclicenseThis
+\newpage
+
+\section{Design overview}
+
+\textit{Netsim} is a Haskell package made of a library containing all the logic
+(\texttt{src/Language/Netsim.hs}) and an executable interface using that library
+(\texttt{src/Main.hs}).
+
+Instead of declaring new types, the library makes an extensive use of type
+synonyms. Type synonyms are viewed as equivalent by the type-checker, but are
+useful to convey information.
+
+All information is contained within three types. All three types are indexed
+first by a \textit{source} node and then by a \textit{destination} node: they
+represent information regarding a relation $A \rightarrow B$.
+
+\begin{description}
+    \item [\texttt{Network}] constains the cost of every direct link from $A$ to
+        $B$: static information about the network's toponomy. This information
+        remains unchanged during periodic exchanges -- unless the user changes
+        it to simulate broken links or cost changes.
+        
+        The function \texttt{bidir} is used to create undirected networks, where
+        $A \rightarrow B \iff B \rightarrow A$. This is done by taking the union
+        of the given network and its swapped copy -- where $A \rightarrow B
+        \rightarrow cost$ gets transformed into $B \rightarrow A \rightarrow
+        cost$.
+
+    \item [\texttt{State}] contains the cost of the best route from $A$ to $B$
+        together with the gateway for such route: all the runtime state. The
+        gateway of a node must be directly linked to that node. 
+
+    \item [\texttt{Ads}] contains advertisment messages sent from $A$ to $B$.
+        These messages the periodic exchanges in the network. They contain
+        distance vectors -- $destination \rightarrow cost$ maps.
+\end{description}
+
+On each \textit{tick} of the network, nodes first create advertisements
+(containing a source, a destination and a distance vector) and then update their
+tables with advertisements sent to them. Distance vectors created as part of
+route advertisement messages can have split-horizon toggled.
+
+All features related to execution are defined in \texttt{src/Main.hs}. First,
+the user declares networks as files through a simple syntax. These networks are
+then parsed. If the \texttt{-d} switch is present, they will be parsed as
+directed networks, otherwise links will be made bidirectional. After this, the
+user is presented with a simple shell where the main functionality is offered.
+
+\section{User manual}
+\subsection{Building}
+\subsection{Installing}
+\subsection{Running}
+
+\section{Example walkthrough}
+
+\section{Installation instructions}
+
+\end{document}

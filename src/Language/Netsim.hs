@@ -1,30 +1,6 @@
 {-# LANGUAGE DeriveGeneric, TupleSections #-}
 
-module Language.Netsim
-    ( Node
-    , Source
-    , Destination
-    , Gateway
-    , Cost
-    , Network
-    , State
-    , Ads
-    , unflatten
-    , bidir
-    , alter
-    , disconnect
-    , state
-    , route
-    , rtable
-    , GetDV
-    , woSH
-    , wSH
-    , tick
-    , run
-    , runN
-    , printRoute
-    , printTable
-    ) where
+module Language.Netsim where
 
 import qualified Data.HashMap as M
 import Data.Hashable (Hashable)
@@ -81,22 +57,15 @@ bidir :: (Hashable a, Ord a)
       => DI a a b -> DI a a b
 bidir net = M.unionWith M.union net (swap net)
 
+-- | If A -> B -> X, then remove B
 disconnect :: (Hashable a, Ord a, Hashable b, Ord b)
       => a -> b -> DI a b c -> DI a b c
 disconnect a b = M.adjust (M.delete b) a
 
+-- | If A -> B -> X, given an X -> X, alter X
 alter :: (Hashable a, Ord a, Hashable b, Ord b)
       => a -> b -> (c -> c) -> DI a b c -> DI a b c
 alter a b f = M.adjust (M.adjust f b) a
-
-
--- | Route from A to B (inclusive) as per routing tables in current state
-route :: Source -> Destination -> State -> [Node]
-route s d st 
-  | s == d = [s]
-  | otherwise = case join $ M.lookup d <$> M.lookup s st of
-                  Nothing -> []
-                  Just (_, g) -> s : route g d st
 
 {------------------}
 {- INITIALIZATION -}
@@ -109,10 +78,6 @@ state = M.map (M.mapWithKey (\d c -> (c, d)))
 {---------------}
 {- ADVERTISING -}
 {---------------}
-
--- | Obtain the routing table for a given node
-rtable :: Source -> State -> RTable
-rtable s = M.findWithDefault M.empty s
 
 -- | Transform a routing table into a distance vector for a given recipient
 -- | Ignores entries pointing to the recipient
@@ -161,10 +126,12 @@ updateNode ads rtable = M.foldWithKey update rtable ads
 receive :: Ads -> State -> State
 receive ads = M.mapWithKey (\s -> updateNode (M.findWithDefault M.empty s (swap ads)))
 
+-- | Rid the state from stale non-existent nodes and links
 updateNetwork :: Network -> State -> State
-updateNetwork net = M.mapWithKey (\s -> M.filterWithKey (\d _ -> maybe False (M.member d) (M.lookup s net)))
-                  . M.filterWithKey (\s _ -> M.member s net)
-
+updateNetwork net = M.mapWithKey (\s -> M.filterWithKey (\d _ ->
+                        maybe False (M.member d) (M.lookup s net)))
+                  . M.filterWithKey (\s _ ->
+                      M.member s net)
 
 {-----------}
 {- RUNNING -}
@@ -182,6 +149,22 @@ run f net st = let st' = tick f net st
 -- | Run for n steps or until the state is stable
 runN :: Int -> GetDV -> Network -> State -> [State]
 runN n f net = take n . run f net
+
+{------------}
+{- ANALYSIS -}
+{------------}
+
+-- | Route from A to B (both inclusive) as per routing tables in state
+route :: Source -> Destination -> State -> [Node]
+route s d st 
+  | s == d = [s]
+  | otherwise = case join $ M.lookup d <$> M.lookup s st of
+                  Nothing -> []
+                  Just (_, g) -> s : route g d st
+
+-- | Obtain the routing table for a given node
+rtable :: Source -> State -> RTable
+rtable s = M.findWithDefault M.empty s
 
 {------------}
 {- PRINTING -}

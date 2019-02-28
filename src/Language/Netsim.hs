@@ -1,6 +1,28 @@
 {-# LANGUAGE DeriveGeneric, TupleSections #-}
 
-module Language.Netsim where
+module Language.Netsim
+    ( Node
+    , Source
+    , Destination
+    , Gateway
+    , Cost
+    , Network
+    , State
+    , Ads
+    , unflatten
+    , bidir
+    , state
+    , woSH
+    , wSH
+    , send
+    , receive
+    , tick
+    , run
+    , runN
+    , printNetwork
+    , printState
+    , printAds
+    ) where
 
 import qualified Data.HashMap as M
 import Data.Maybe (fromMaybe)
@@ -60,10 +82,6 @@ bidir net = M.unionWith M.union net (swap net)
 {------------------}
 {- INITIALIZATION -}
 {------------------}
-
--- | Initialise a bidirectional network tree
-network :: [(Node, Node, Cost)] -> Network
-network = bidir . unflatten
 
 -- | Initialise state: each node knows about its neighbours
 state :: Network -> State
@@ -159,40 +177,3 @@ printAds :: Ads -> String
 printAds = unlines
          . map (\(s, d, dv) -> printf "%s sends %s DV %s" s d (show dv))
          . flatten
-
-{------------}
-{- EXAMPLES -}
-{------------}
-
-ex1 :: Network
-ex1 = network
-    [ ("alpha", "beta", 0)
-    , ("gamma", "beta", 1)
-    ]
-
-ex2 :: Network
-ex2 = network
-    [ ("n1", "n3", 6)
-    , ("n3", "n6", 1)
-    , ("n6", "n5", 2)
-    , ("n5", "n4", 1)
-    , ("n4", "n2", 1)
-    , ("n2", "n1", 3)
-    , ("n2", "n5", 3)
-    , ("n1", "n5", 1)
-    , ("n5", "n3", 3)
-    ]
-
-ex3 :: Network
-ex3 = network
-    [ ("A", "B", 3)
-    , ("A", "C", 23)
-    , ("B", "C", 2)
-    , ("C", "D", 5)
-    ]
-
-ex4 :: Network
-ex4 = network
-    [ ("A", "B", 2)
-    , ("B", "C", 3)
-    ]

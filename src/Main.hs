@@ -58,8 +58,10 @@ commHelp = unlines
     , "tick             advance the simulation by a single tick"
     , "run              run the simulation until state is stable"
     , "run N            run the simulation for N steps or until state is stable"
-    , "cost S D N       set the cost of the link S -> D to N (NOTE: D -> S is left unchanged)"
-    , "fail S D         destroy the link S -> D (NOTE: D -> S is left unchanged)"
+    , "cost S D N       set the cost of the link S -> D to N"
+    , "                 NOTE: D -> S is left unchanged"
+    , "fail S D         destroy the link S -> D"
+    "                   NOTE: D -> S is left unchanged"
     , "route S D        display the best route from S to D"
     , "table S          display the routing table for node S"
     , "split-horizon    activate split-horizon on all nodes"
@@ -94,11 +96,11 @@ parseNetwork s = mapM (parseRow . words) (lines s)
 data Configuration = Configuration
     { filepath :: String
     , directed :: Bool
-    } deriving Show
+    }
 
 configuration :: Parser Configuration
 configuration = Configuration
-    <$> (argument auto $ metavar "NETWORK-FILE")
+    <$> (argument str $ metavar "NETWORK-FILE")
     <*> (switch $ long "directed" <> short 'd' <> help "Network edges are directed")
 
 opts :: ParserInfo Configuration
@@ -106,8 +108,8 @@ opts = info (configuration <**> helper)
      ( fullDesc
     <> header "Netsim - Uma Zalakain"
     <> progDesc (unlines
-        [ "Parses file containing network description and jumps into interactive shell."
-        , "Each line in the file represents a link, and must have the following syntax:"
+        [ "Parses NETWORK-FILE and jumps into an interactive shell."
+        , "Each line in the file represents a link and must have the following syntax:"
         , "<SOURCE> <DESTINATION> <COST>"
         , "where <SOURCE> and <DESTINATION> are arbitrary identifiers and <COST> is an integer."
         ])

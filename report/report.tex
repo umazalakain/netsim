@@ -21,11 +21,6 @@
 \usepackage[yyyymmdd]{datetime}
 \renewcommand{\dateseparator}{--}
 
-% Haskell code highlighting
-\usepackage{minted}
-\newenvironment{code}{\VerbatimEnvironment\begin{minted}{haskell}}{\end{minted}}
-\setminted{fontsize=\footnotesize,baselinestretch=1}
-
 % Include images
 \usepackage{graphics}
 
@@ -91,22 +86,87 @@ represent information regarding a relation $A \rightarrow B$.
 
 On each \textit{tick} of the network, nodes first create advertisements
 (containing a source, a destination and a distance vector) and then update their
-tables with advertisements sent to them. Distance vectors created as part of
-route advertisement messages can have split-horizon toggled.
+tables with advertisements sent to them. Stale broken links are cleared from
+routing tables. Distance vectors created as part of route advertisement messages
+can have split-horizon toggled.
 
-All features related to execution are defined in \texttt{src/Main.hs}. First,
-the user declares networks as files through a simple syntax. These networks are
-then parsed. If the \texttt{-d} switch is present, they will be parsed as
-directed networks, otherwise links will be made bidirectional. After this, the
-user is presented with a simple shell where the main functionality is offered.
+All features related to execution are found in \texttt{src/Main.hs}. Networks
+are declared by the user through a simple syntax and then parsed. If the
+\texttt{-d} switch is present, links will be considered directed, otherwise
+they will be made bidirectional. Finally, the user is presented with a simple
+shell where the main functionality is offered: running the simulation, querying
+the state, modifying the underlying network, activating split-horizon.
 
 \section{User manual}
-\subsection{Building}
-\subsection{Installing}
-\subsection{Running}
+
+\textbf{Note}: an executable capable of running on Windows 10 x64 could not be
+provided, as cross-compilation in Haskell can be tricky and the author does not
+have a Windows 10 x64 machine.
+
+This project is written in Haskell and uses Cabal to build itself. Both can be
+installed by following the steps found at
+\url{https://www.haskell.org/platform/windows.html}. 
+
+\subsection{Compilation}
+
+Assuming a shell with the project's directory as the current directory, the
+project can be built as follows:
+
+\begin{verbatim}
+    # Updates the list of packages available online
+    cabal update
+    # Installs dependencies
+    cabal install --dependencies-only
+    # Builds the project
+    cabal build
+\end{verbatim}
+
+The resulting binary will be found in \texttt{dist/build/netsim/netsim}.
+
+\subsection{Installation}
+
+Assuming a shell with the project's directory as the current directory, the
+project can be installed as follows:
+
+\begin{verbatim}
+    # Updates the list of packages available online
+    # Only necessary the first time
+    cabal update
+    # Install the project and its dependencies
+    cabal install
+\end{verbatim}
+
+The generated output will specify the location of the generated binary. The
+shell's path list should point to the directory in which the binary resides, in
+which case it will be executable by running \texttt{netsim}.
+
+\subsection{Execution}
+
+Executing netsim without any arguments will output a brief help text. Netsim
+expects a network file as its first argument. Unless netsim is ran without the
+\texttt{-d} switch, network links are undirected.
+
+Network files must have one link declaration per line (should support Windows'
+carriage returns). Let \texttt{<SOURCE>} and \texttt{<DESTINATION>} be arbitrary
+identifiers with no space in them, and let \texttt{<COST>} be an integer, then a
+link is declared as follows:
+
+\begin{verbatim}
+<SOURCE> <DESTINATION> <COST>
+\end{verbatim}
+
+Once a network file is successfully parsed, netsim will present an interactive
+shell. Unrecognised commands will result in help text being printed. The list of
+commands follows:
 
 \section{Example walkthrough}
 
-\section{Installation instructions}
+\subsection{Normal convergence}
+
+\subsection{Slow convergence}
+\subsubsection{Without split-horizon}
+\subsubsection{With split-horizon}
+
+\section{Status report}
 
 \end{document}

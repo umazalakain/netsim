@@ -12,6 +12,9 @@ module Language.Netsim
     , unflatten
     , bidir
     , state
+    , route
+    , rtable
+    , GetDV
     , woSH
     , wSH
     , send
@@ -19,15 +22,16 @@ module Language.Netsim
     , tick
     , run
     , runN
-    , printNetwork
-    , printState
-    , printAds
+    , printRoute
+    , printTable
     ) where
 
 import qualified Data.HashMap as M
 import Data.Maybe (fromMaybe)
 import Data.Hashable (Hashable)
+import Data.List (intercalate)
 import Text.Printf (printf)
+import Control.Monad (join)
 
 {---------}
 {- TYPES -}
@@ -67,10 +71,6 @@ swap = M.unionsWith M.union
      . M.elems
      . M.mapWithKey (\n -> M.map (\a -> M.singleton n a))
 
--- | Flatten a nested map into tuples
-flatten :: DI a b c -> [(a, b, c)]
-flatten = concatMap (M.elems) . M.elems . M.mapWithKey (\a -> M.mapWithKey (\b c -> (a, b, c)))
-
 -- | Build a nested map from tuples
 unflatten :: (Hashable a, Ord a, Hashable b, Ord b) => [(a, b, c)] -> DI a b c
 unflatten = foldr (\(a, b, c) -> M.insertWith M.union a (M.singleton b c)) M.empty
@@ -78,6 +78,14 @@ unflatten = foldr (\(a, b, c) -> M.insertWith M.union a (M.singleton b c)) M.emp
 -- | Add indices in both directions: A -> B -> X iff B -> A -> X
 bidir :: (Hashable a, Ord a) => DI a a b -> DI a a b
 bidir net = M.unionWith M.union net (swap net)
+
+-- | Route from A to B (inclusive) as per routing tables in current state
+route :: Source -> Destination -> State -> [Node]
+route s d st 
+  | s == d = [s]
+  | otherwise = case join $ M.lookup d <$> M.lookup s st of
+                  Nothing -> []
+                  Just (_, g) -> s : route g d st
 
 {------------------}
 {- INITIALIZATION -}
@@ -146,34 +154,26 @@ receive ads = M.mapWithKey (\s -> updateNode (M.findWithDefault M.empty s (swap 
 {-----------}
 
 -- | Run for a single tick
-tick :: GetDV -> Network -> State -> (State, Ads)
-tick f net st = let adsSent = send f st net
-                 in (receive adsSent st, adsSent)
+tick :: GetDV -> Network -> State -> State
+tick f net st = receive (send f st net) st
 
 -- | Run until the state is stable
-run :: GetDV -> Network -> State -> [(State, Ads)]
-run f net st = let (st', ads) = tick f net st
-                in (st, ads) : if st == st' then [] else run f net st'
+run :: GetDV -> Network -> State -> [State]
+run f net st = let st' = tick f net st
+                in st : if st == st' then [] else run f net st'
 
 -- | Run for n steps or until the state is stable
-runN :: GetDV -> Network -> Int -> State -> [(State, Ads)]
-runN f net n = take n . run f net
+runN :: Int -> GetDV -> Network -> State -> [State]
+runN n f net = take n . run f net
 
 {------------}
 {- PRINTING -}
 {------------}
 
-printNetwork :: Network -> String
-printNetwork = unlines
-             . map (\(s, d, c) -> printf "<%s, %s, %d>" s d c)
-             . flatten
+printRoute :: [Node] -> String
+printRoute = intercalate " -> "
 
-printState :: State -> String
-printState = unlines
-           . map (\(s, d, (c, g)) -> printf "<%s, %s, %d, %s>" s d c g)
-           . flatten
-
-printAds :: Ads -> String
-printAds = unlines
-         . map (\(s, d, dv) -> printf "%s sends %s DV %s" s d (show dv))
-         . flatten
+printTable :: RTable -> String
+printTable = unlines
+           . map (\(d, (c, g)) -> printf "<%s, %d, %s>" d c g)
+           . M.toList

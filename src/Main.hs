@@ -13,7 +13,7 @@ import Language.Netsim
 -- | Parses a network represented as a string
 -- | Links must be split by newlines
 -- | Each link must have format 'alpha beta cost' where 'cost' is an integer
-parseNetwork :: String -> Maybe [(String, String, Int)]
+parseNetwork :: String -> Maybe [(Node, Node, Cost)]
 parseNetwork s = mapM (parseRow . words) (lines s)
     where parseRow [a, b, c] = case readMaybe c :: Maybe Int of
                                  Nothing -> Nothing
@@ -57,12 +57,11 @@ doCommand Exit         (f, net, st) = exitSuccess
 doCommand Tick         (f, net, st) = pure (f, net, tick f net st)
 doCommand Run          (f, net, st) = pure (f, net, fromMaybe st $ safeLast $ run f net st)
 doCommand (RunFor n)   (f, net, st) = pure (f, net, fromMaybe st $ safeLast $ runN n f net st)
-doCommand (Cost s d n) (f, net, st) = pure (f, undefined, st)
-doCommand (Fail s d)   (f, net, st) = pure (f, undefined, st)
+doCommand (Cost s d n) (f, net, st) = pure (f, alter s d (const n) net, st)
+doCommand (Fail s d)   (f, net, st) = pure (f, disconnect s d net, st)
 doCommand (Route s d)  (f, net, st) = putStrLn (printRoute (route s d st)) >> pure (f, net, st)
 doCommand (Table s)    (f, net, st) = putStrLn (printTable (rtable s st)) >> pure (f, net, st)
 doCommand SplitHorizon (_, net, st) = pure (wSH, net, st)
-
 
 commandHelp :: String
 commandHelp = unlines
@@ -70,8 +69,8 @@ commandHelp = unlines
     , "tick             advance the simulation by a single tick"
     , "run              run the simulation until state is stable"
     , "run N            run the simulation for N steps or until state is stable"
-    , "cost S D N       set the cost of the link S -> D to N (and D -> S to N if in an undirected network)"
-    , "fail S D         destroy the link S -> D (and D -> S if in an undirected network)"
+    , "cost S D N       set the cost of the link S -> D to N (NOTE: D -> S is left unchanged)"
+    , "fail S D         destroy the link S -> D (NOTE: D -> S is left unchanged)"
     , "route S D        display the best route from S to D"
     , "table S          display the routing table for node S"
     , "split-horizon    activate split-horizon on all nodes"

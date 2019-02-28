@@ -11,14 +11,14 @@ module Language.Netsim
     , Ads
     , unflatten
     , bidir
+    , alter
+    , disconnect
     , state
     , route
     , rtable
     , GetDV
     , woSH
     , wSH
-    , send
-    , receive
     , tick
     , run
     , runN
@@ -27,7 +27,6 @@ module Language.Netsim
     ) where
 
 import qualified Data.HashMap as M
-import Data.Maybe (fromMaybe)
 import Data.Hashable (Hashable)
 import Data.List (intercalate)
 import Text.Printf (printf)
@@ -66,18 +65,30 @@ type DV      = M.Map Destination Cost
 
 -- | Swap the indices in a nested map
 -- | This will allow us to index by either source or destination
-swap :: (Hashable a, Ord a, Hashable b, Ord b) => DI a b c -> DI b a c
+swap :: (Hashable a, Ord a, Hashable b, Ord b)
+     => DI a b c -> DI b a c
 swap = M.unionsWith M.union
      . M.elems
      . M.mapWithKey (\n -> M.map (\a -> M.singleton n a))
 
 -- | Build a nested map from tuples
-unflatten :: (Hashable a, Ord a, Hashable b, Ord b) => [(a, b, c)] -> DI a b c
+unflatten :: (Hashable a, Ord a, Hashable b, Ord b)
+          => [(a, b, c)] -> DI a b c
 unflatten = foldr (\(a, b, c) -> M.insertWith M.union a (M.singleton b c)) M.empty
 
 -- | Add indices in both directions: A -> B -> X iff B -> A -> X
-bidir :: (Hashable a, Ord a) => DI a a b -> DI a a b
+bidir :: (Hashable a, Ord a)
+      => DI a a b -> DI a a b
 bidir net = M.unionWith M.union net (swap net)
+
+disconnect :: (Hashable a, Ord a, Hashable b, Ord b)
+      => a -> b -> DI a b c -> DI a b c
+disconnect a b = M.adjust (M.delete b) a
+
+alter :: (Hashable a, Ord a, Hashable b, Ord b)
+      => a -> b -> (c -> c) -> DI a b c -> DI a b c
+alter a b f = M.adjust (M.adjust f b) a
+
 
 -- | Route from A to B (inclusive) as per routing tables in current state
 route :: Source -> Destination -> State -> [Node]
@@ -149,13 +160,18 @@ updateNode ads rtable = M.foldWithKey update rtable ads
 receive :: Ads -> State -> State
 receive ads = M.mapWithKey (\s -> updateNode (M.findWithDefault M.empty s (swap ads)))
 
+updateNetwork :: Network -> State -> State
+updateNetwork net = M.mapWithKey (\s -> M.filterWithKey (\d _ -> maybe False (M.member d) (M.lookup s net)))
+                  . M.filterWithKey (\s _ -> M.member s net)
+
+
 {-----------}
 {- RUNNING -}
 {-----------}
 
 -- | Run for a single tick
 tick :: GetDV -> Network -> State -> State
-tick f net st = receive (send f st net) st
+tick f net st = receive (send f st net) (updateNetwork net st)
 
 -- | Run until the state is stable
 run :: GetDV -> Network -> State -> [State]

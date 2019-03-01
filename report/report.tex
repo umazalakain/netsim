@@ -6,10 +6,6 @@
 % They are all over the place
 \usepackage{todonotes}
 
-% Appendices
-\usepackage[header,title,titletoc]{appendix}
-\renewcommand{\appendixname}{Appendix}
-
 % License
 \usepackage[
     type={CC},
@@ -21,9 +17,6 @@
 \usepackage[yyyymmdd]{datetime}
 \renewcommand{\dateseparator}{--}
 
-% Include images
-\usepackage{graphics}
-
 % Links and their colors
 \usepackage[
   colorlinks=true,
@@ -32,11 +25,7 @@
   urlcolor=darkgray,
   ]{hyperref}
 
-% Change the geometry of some of the pages 
-\usepackage{geometry}
-
-% Put some pages in landscape
-\usepackage{rotating}
+\usepackage{tikz}
 
 \begin{document}
 
@@ -163,9 +152,145 @@ commands follows:
 
 \subsection{Normal convergence}
 
+The figure below shows a network in which the direct link $A - B$ is more
+costly than the route $A - D - C - B$. The file describing the network can be
+loaded with \texttt{netsim examples/ex5.netsim}.
+
+\begin{figure}[h!]
+\centering
+\begin{tikzpicture}[auto, thick, node distance=2cm]
+    \node [draw,circle]            (A) {A};
+    \node [draw,circle,below of=A] (B) {B};
+    \node [draw,circle,right of=B] (C) {C};
+    \node [draw,circle,above of=C] (D) {D};
+
+    \draw (A) -- node {8} (B);
+    \draw (B) -- node {3} (C);
+    \draw (C) -- node {1} (D);
+    \draw (D) -- node {2} (A);
+\end{tikzpicture}
+\end{figure}
+
+Initially, each node only knows about its neighbours:
+\begin{verbatim}
+> table A
+<D, 2, D>
+<B, 8, B>
+\end{verbatim}
+
+After the first exchange, each node knows about nodes 2 hops away. The route
+$A - B$ is still suboptimal:
+
+\begin{verbatim}
+> tick
+> table A
+<D, 2, D>
+<B, 8, B>
+<C, 3, D>
+\end{verbatim}
+
+After another exchange, each node knows about nodes 3 hops away, and thus $A$
+knows about the optimal route to $B$:
+
+\begin{verbatim}
+> tick
+> table A
+<D, 2, D>
+<B, 6, D>
+<C, 3, D>
+\end{verbatim}
+
 \subsection{Slow convergence}
+
+The figure below shows a network in which $A$ and $C$ need to talk through $B$.
+The file describing the network can be loaded with \texttt{netsim
+examples/ex4.netsim}.
+
+After the initial exchanges that make the network stabilise, the link between
+$A$ and $B$ will be broken. Depending on whether split-horizon is activated or
+not, the subsequent exchanges might enter a loop and the network might never
+stabilise.
+
+\begin{figure}[h!]
+\begin{tikzpicture}[auto, thick, node distance=2cm]
+    \node [draw,circle]            (A) {A};
+    \node [draw,circle,right of=A] (B) {B};
+    \node [draw,circle,right of=B] (C) {C};
+
+    \draw (A) -- node {1} (B);
+    \draw (B) -- node {1} (C);
+\end{tikzpicture}
+\end{figure}
+
 \subsubsection{Without split-horizon}
+
+First, periodic exchanges occur until the network is stabilised:
+
+\begin{verbatim}
+> run
+> table A
+<B, 1, B>
+<C, 2, B>
+\end{verbatim}
+
+Then the link between $A$ and $B$ is broken in both directions:
+
+\begin{verbatim}
+> fail A B
+> fail B A
+\end{verbatim}
+
+When the periodic exchanges are resumed, $C$ tells $B$ that it has a route to
+$A$ through $B$, and $B$ tells $C$ that it has a route to $A$ through $C$. This
+exchanges go on in a loop, and the cost to $A$ keeps forever increasing.
+
+\begin{verbatim}
+> run
+> table A
+^C
+\end{verbatim}
+
+\textbf{Note}: Haskell is a lazy language where computation only happens when
+the resulting data is needed. If evaluation was strict, the \texttt{run} command
+would enter a loop. But because the resulting information is not needed until
+the routing table for $A$ is displayed, the looping occurs on the \texttt{table
+A} command.
+
+Defining a low \textit{infinity} would prevent the looping behaviour, which
+would terminate as soon as the cost of the route to $A$ reaches this number.
+
 \subsubsection{With split-horizon}
+
+As in the previous case, periodic exchanges are ran until the network is
+stabilised and then the link between $A$ and $B$ is broken:
+
+\begin{verbatim}
+> run
+> fail A B
+> fail B A
+\end{verbatim}
+
+Before resuming the periodic exchange, the split-horizon feature is activated:
+
+\begin{verbatim}
+> split-horizon
+\end{verbatim}
+
+This prevents $C$ from sending to $B$ routes that have $B$ as gateway.
+Likewise, it prevents $B$ from sending to $C$ routes that have $C$ as gateway.
+The looping behaviour is therefore avoided and $A$ is successfully purged from
+the routing tables:
+
+\begin{verbatim}
+> run
+> table A
+
+> table B
+<C, 1, C>
+
+> table C
+<B, 1, B>
+\end{verbatim}
 
 \section{Status report}
 

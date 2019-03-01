@@ -172,6 +172,7 @@ loaded with \texttt{netsim examples/ex5.netsim}.
 \end{figure}
 
 Initially, each node only knows about its neighbours:
+
 \begin{verbatim}
 > table A
 <D, 2, D>
@@ -293,5 +294,48 @@ the routing tables:
 \end{verbatim}
 
 \section{Status report}
+
+Netsim contains no \textit{known} limitations or bugs. The functional
+requirements have been fulfilled as follows:
+
+\begin{itemize}
+    \item \textit{Compute routing tables for any preset number of exchanges or
+        until stability is achieved.}
+
+        The command \texttt{tick} will simulate a single exchange. The command
+        \texttt{run} will simulate exchanges until stability is reached. The
+        command \texttt{run N} will simulate \texttt{N} exchanges or stop when
+        stability is reached.
+
+    \item \textit{Preset any link to change cost or fail after any chosen
+        exchange.}
+
+        The command \texttt{fail S D} will make the link \texttt{S}
+        $\rightarrow$ \texttt{D} fail. The command \texttt{cost S D N} will set
+        the cost of the link \texttt{S} $\rightarrow$ \texttt{D} to \texttt{N}.
+        Note that the links are assumed to be directional. These commands will
+        have to be ran once in each direction to simulate changes in both
+        directions.
+    
+    \item \textit{View the best route between any source and destination after
+        any chosen iteration.}
+
+        At any point during the simulation, the command \texttt{route S D} can
+        be used to query for the best current route from \texttt{S} to
+        \texttt{D}.
+
+    \item \textit{Trace the routing tables of any set of nodes for any specified
+        number of iterations in a way that can be easily viewed.}
+
+        At any point during the simulation, the command \texttt{table S} can be
+        used to view the routing table of node \texttt{S}.
+
+    \item \textit{Engage, on request, a split-horizon capability to help combat
+        slow convergence.}
+
+        At any point during the simulation, the command \texttt{split-horizon}
+        can be used so that all nodes generate distance vectors with
+        split-horizon activated.
+\end{itemize}
 
 \end{document}
